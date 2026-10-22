@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/pagbank-design-system-82e2600c-cf79-46a8-b04a-ede85fae463a/tokens/colors.css">
+  <link rel="stylesheet" href="_ds/pagbank-design-system-82e2600c-cf79-46a8-b04a-ede85fae463a/tokens/typography.css">
+  <link rel="stylesheet" href="_ds/pagbank-design-system-82e2600c-cf79-46a8-b04a-ede85fae463a/tokens/figma-tokens.css">
+  <link rel="stylesheet" href="_ds/pagbank-design-system-82e2600c-cf79-46a8-b04a-ede85fae463a/components/fig-tokens.css">
+  <link rel="stylesheet" href="_ds/pagbank-design-system-82e2600c-cf79-46a8-b04a-ede85fae463a/components/fig-typography.css">
+  <link rel="stylesheet" href="_ds/pagbank-design-system-82e2600c-cf79-46a8-b04a-ede85fae463a/components/fig-assets.css">
+  <link rel="stylesheet" href="_ds/pagbank-design-system-82e2600c-cf79-46a8-b04a-ede85fae463a/styles.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Fira+Code&display=swap">
+  <script src="_ds/pagbank-design-system-82e2600c-cf79-46a8-b04a-ede85fae463a/_ds_bundle.js"></script>
+  <style>
+    body{margin:0;background:var(--bg-neutral-subtle,#F8F8F8);font-family:Inter,system-ui,sans-serif;color:var(--content-neutral-default,#272727)}
+    a{color:var(--content-link-default,#0078AD)}a:hover{color:var(--content-interactive-default,#0078AD)}
+    select,input,textarea{font-family:inherit}
+  </style>
+  <title>Câmbio PagBank</title>
+</helmet>
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#1D8915"/><text x="50" y="62" font-family="Inter,sans-serif" font-size="32" font-weight="700" fill="#fff" text-anchor="middle">R$→$</text></svg></template>
+<div style="min-height:100vh;display:flex;flex-direction:column">
+  <x-import component-from-global-scope="ColmeiaDesignSystem_82e260.Header" user-name="{{ client.name }}" user-email="{{ client.email }}" hint-size="100%,64px"></x-import>
+
+  <sc-if value="{{ isHome }}" hint-placeholder-val="{{ false }}">
+    <main style="width:100%;max-width:720px;margin:0 auto;padding:64px 24px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px;align-items:flex-start">
+      <span style="font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--content-brand-primary-default,#1C7417)">Câmbio</span>
+      <h1 style="margin:0;font-size:36px;line-height:44px;font-weight:700">oxus-poc</h1>
+      <p style="margin:0;font-size:16px;line-height:24px;color:var(--content-neutral-secondary,#535353)">POC de integração com a API da OXUS para câmbio BRL → USD.</p>
+      <div onClick="{{ goFlow }}" style="cursor:pointer;margin-top:8px">
+        <x-import component-from-global-scope="ColmeiaDesignSystem_82e260.Button" button-text="Testar remessa no sandbox" variant="primary" size="sm" no-padding="{{ false }}" supporting-visual="{{ false }}" hint-size="220px,40px"></x-import>
+      </div>
+    </main>
+  </sc-if>
+  <sc-if value="{{ isFlow }}" hint-placeholder-val="{{ true }}">
+  <div style="width:100%;max-width:1080px;margin:0 auto;padding:24px 24px 0;box-sizing:border-box"><button onClick="{{ goHome }}" style="border:0;background:none;padding:8px 0;font-size:14px;font-weight:600;cursor:pointer;color:var(--content-interactive-default,#0078AD)">← Voltar</button></div>
+  <main style="width:100%;max-width:1080px;margin:0 auto;padding:8px 24px 64px;box-sizing:border-box;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,340px);gap:24px;align-items:start">
+    <div style="grid-column:1 / -1;display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <span style="font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--content-brand-primary-default,#1C7417)">Câmbio · Sandbox OXUS</span>
+      </div>
+      <h1 style="margin:0;font-size:36px;line-height:44px;font-weight:700">Remessa BRL → exterior</h1>
+      <p style="margin:0;font-size:16px;line-height:24px;color:var(--content-neutral-secondary,#535353);text-wrap:pretty">Escolha o cliente e a conta de destino, cote o valor e pague via PIX. Ambiente de testes, nenhum dinheiro real é movimentado.</p>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:16px;min-width:0">
+      <!-- 1 -->
+      <section style="background:var(--bg-neutral-default,#fff);border:1px solid var(--border-neutral-subtle,#E8E8E8);border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:16px">
+        <div style="display:flex;align-items:center;gap:12px">
+          <span style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;background:var(--bg-brand-primary-default,#1D8915);color:#fff">1</span>
+          <h2 style="margin:0;font-size:18px;font-weight:600">Cliente e conta de destino</h2>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px">
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:14px;color:var(--content-neutral-secondary,#535353)">
+            Cliente
+            <select value="{{ clientId }}" onChange="{{ onClient }}" disabled="{{ locked }}" style="height:48px;padding:0 12px;border:1px solid var(--border-neutral-default,#D3D3D3);border-radius:8px;background:var(--bg-neutral-default,#fff);font-size:16px;color:var(--content-neutral-default,#272727)">
+              <option value="c1">Lucas Fernandes</option><option value="c2">Mariana Costa</option>
+            </select>
+          </label>
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:14px;color:var(--content-neutral-secondary,#535353)">
+            Conta de destino
+            <select value="{{ accountId }}" onChange="{{ onAccount }}" disabled="{{ locked }}" style="height:48px;padding:0 12px;border:1px solid var(--border-neutral-default,#D3D3D3);border-radius:8px;background:var(--bg-neutral-default,#fff);font-size:16px;color:var(--content-neutral-default,#272727)">
+              <option value="a1">ACH •••• 6789 · Carlos Oliveira (USD)</option><option value="a2">SWIFT •••• 2201 · Ana Ribeiro (USD)</option>
+            </select>
+          </label>
+        </div>
+      </section>
+
+      <!-- 2 -->
+      <section style="background:var(--bg-neutral-default,#fff);border:1px solid var(--border-neutral-subtle,#E8E8E8);border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:16px">
+        <div style="display:flex;align-items:center;gap:12px">
+          <span style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;background:var(--bg-brand-primary-default,#1D8915);color:#fff">2</span>
+          <h2 style="margin:0;font-size:18px;font-weight:600">Cotação</h2>
+        </div>
+        <div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap">
+          <div style="flex:1 1 240px;min-width:0;--color-bg-neutral-default:#FFFFFF;--color-bg-neutral-soft:#F8F8F8;--color-fg-text-primary:#272727;--color-fg-text-secondary:#535353;--color-fg-text-placeholder:#535353;--color-border-neutral-default:#D3D3D3;--color-bg-control-default:#1D8915;--color-border-critical-default:#C31312;--radius-sm:8px">
+            <x-import component-from-global-scope="ColmeiaDesignSystem_82e260.FormField" label="Valor em reais" prefix="R$" value="{{ amount }}" on-change="{{ onAmount }}" disabled="{{ locked }}" error="{{ noRoute }}" error-message="Sem rota disponível para este valor." helper-text="Mínimo R$ 10,00" hint-size="100%,56px"></x-import>
+          </div>
+          <div onClick="{{ onQuote }}" style="cursor:pointer;padding-top:4px">
+            <x-import component-from-global-scope="ColmeiaDesignSystem_82e260.Button" button-text="{{ quoteLabel }}" variant="primary" size="sm" no-padding="{{ false }}" supporting-visual="{{ false }}" disabled="{{ quoteDisabled }}" state="{{ quoteState }}" hint-size="96px,40px"></x-import>
+          </div>
+        </div>
+        <sc-if value="{{ showScenarios }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:12px;color:var(--content-neutral-secondary,#535353)">
+            <span>Simular cenário pelos centavos:</span>
+            <sc-for list="{{ scenarios }}" as="s" hint-placeholder-count="4">
+              <button onClick="{{ s.pick }}" title="{{ s.desc }}" style="border:1px solid var(--border-neutral-default,#D3D3D3);background:var(--bg-neutral-default,#fff);border-radius:999px;padding:4px 10px;font-size:12px;cursor:pointer;white-space:nowrap;color:var(--content-neutral-default,#272727);font-family:'Fira Code',monospace" style-hover="border-color:var(--border-brand-default,#1D8915)">{{ s.code }} {{ s.desc }}</button>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ hasQuote }}" hint-placeholder-val="{{ false }}">
+          <div style="border-top:1px solid var(--border-neutral-subtle,#E8E8E8);padding-top:16px;display:flex;flex-direction:column;gap:12px">
+            <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;background:var(--bg-neutral-subtle,#F8F8F8);border-radius:8px;padding:16px">
+              <div style="display:flex;flex-direction:column;gap:4px">
+                <span style="font-size:12px;color:var(--content-neutral-secondary,#535353)">Você envia</span>
+                <span style="font-size:20px;font-weight:600">{{ q.send }}</span>
+              </div>
+              <span style="font-size:20px;color:var(--content-neutral-secondary,#535353)">→</span>
+              <div style="display:flex;flex-direction:column;gap:4px;text-align:right">
+                <span style="font-size:12px;color:var(--content-neutral-secondary,#535353)">Destino recebe</span>
+                <span style="font-size:24px;font-weight:700;color:var(--content-brand-primary-default,#1C7417)">{{ q.receive }}</span>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:auto 1fr;column-gap:16px;row-gap:10px;font-size:14px">
+              <span style="color:var(--content-neutral-secondary,#535353)">Câmbio</span><span style="text-align:right;font-family:'Fira Code',monospace">{{ q.rate }}</span>
+              <span style="color:var(--content-neutral-secondary,#535353)">VET</span><span style="text-align:right;font-family:'Fira Code',monospace">{{ q.vet }}</span>
+              <span style="color:var(--content-neutral-secondary,#535353)">Tarifas</span><span style="text-align:right">{{ q.fees }} <span style="color:var(--content-neutral-secondary,#535353)">(OXUS R$ 0,60 + entrega R$ 8,15)</span></span>
+              <span style="color:var(--content-neutral-secondary,#535353)">Prazo estimado</span><span style="text-align:right">Mesmo dia · 3 rotas avaliadas</span>
+              <span style="color:var(--content-neutral-secondary,#535353)">Validade</span><span style="text-align:right;font-weight:600;color:{{ validityColor }}">{{ validity }}</span>
+            </div>
+          </div>
+        </sc-if>
+      </section>
+
+      <!-- 3 -->
+      <section style="background:var(--bg-neutral-default,#fff);border:1px solid var(--border-neutral-subtle,#E8E8E8);border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:16px;opacity:{{ step3Opacity }}">
+        <div style="display:flex;align-items:center;gap:12px">
+          <span style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;background:var(--bg-brand-primary-default,#1D8915);color:#fff">3</span>
+          <h2 style="margin:0;font-size:18px;font-weight:600">Confirmação</h2>
+        </div>
+        <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+          <label style="flex:1 1 240px;display:flex;flex-direction:column;gap:6px;font-size:14px;color:var(--content-neutral-secondary,#535353)">
+            Finalidade
+            <select value="{{ purpose }}" onChange="{{ onPurpose }}" disabled="{{ purposeDisabled }}" style="height:48px;padding:0 12px;border:1px solid var(--border-neutral-default,#D3D3D3);border-radius:8px;background:var(--bg-neutral-default,#fff);font-size:16px;color:var(--content-neutral-default,#272727)">
+              <option value="Conta própria">Conta própria</option><option value="Manutenção de família">Manutenção de família</option><option value="Educação">Educação</option><option value="Saúde">Saúde</option><option value="Viagem">Viagem</option><option value="Serviços">Serviços</option><option value="Mercadorias">Mercadorias</option>
+            </select>
+          </label>
+          <div onClick="{{ onConfirm }}" style="cursor:pointer;padding-bottom:4px">
+            <x-import component-from-global-scope="ColmeiaDesignSystem_82e260.Button" button-text="Confirmar" variant="primary" size="sm" no-padding="{{ false }}" supporting-visual="{{ false }}" disabled="{{ confirmDisabled }}" state="{{ confirmState }}" hint-size="104px,40px"></x-import>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4 -->
+      <sc-if value="{{ hasTransfer }}" hint-placeholder-val="{{ false }}">
+        <section style="background:var(--bg-neutral-default,#fff);border:1px solid var(--border-neutral-subtle,#E8E8E8);border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:16px">
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+            <span style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;background:var(--bg-brand-primary-default,#1D8915);color:#fff">4</span>
+            <h2 style="margin:0;font-size:18px;font-weight:600;flex:1">Transferência</h2>
+            <x-import component-from-global-scope="ColmeiaDesignSystem_82e260.TagStatus" variant="{{ tag.variant }}" text-success="{{ tag.text }}" error-text="{{ tag.text }}" text-attention="{{ tag.text }}" hint-size="96px,24px"></x-import>
+          </div>
+          <span style="font-family:'Fira Code',monospace;font-size:12px;color:var(--content-neutral-secondary,#535353);word-break:break-all">{{ transferId }}</span>
+
+          <sc-if value="{{ showPix }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <span style="font-size:14px;color:var(--content-neutral-secondary,#535353)">PIX copia e cola</span>
+              <div style="font-family:'Fira Code',monospace;font-size:12px;line-height:18px;word-break:break-all;background:var(--bg-neutral-subtle,#F8F8F8);border:1px solid var(--border-neutral-subtle,#E8E8E8);border-radius:8px;padding:12px">{{ pix }}</div>
+              <div onClick="{{ onCopy }}" style="cursor:pointer;align-self:flex-start">
+                <x-import component-from-global-scope="ColmeiaDesignSystem_82e260.Button" button-text="{{ copyLabel }}" variant="secondary" size="sm" no-padding="{{ false }}" supporting-visual="{{ false }}" hint-size="140px,40px"></x-import>
+              </div>
+            </div>
+          </sc-if>
+
+          <div style="display:flex;flex-direction:column">
+            <sc-for list="{{ steps }}" as="st" hint-placeholder-count="4">
+              <div style="display:grid;grid-template-columns:24px 1fr auto;gap:12px;align-items:start;padding:12px 0;border-bottom:1px solid var(--border-neutral-subtle,#E8E8E8)">
+                <span style="width:12px;height:12px;margin:4px 6px;border-radius:50%;box-sizing:border-box;background:{{ st.dot }};border:2px solid {{ st.ring }}"></span>
+                <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                  <span style="font-size:14px;font-weight:600">{{ st.label }}</span>
+                  <span style="font-family:'Fira Code',monospace;font-size:11px;color:var(--content-neutral-secondary,#535353);word-break:break-all">{{ st.ref }}</span>
+                </div>
+                <span style="font-size:14px;color:{{ st.color }}">{{ st.status }}</span>
+              </div>
+            </sc-for>
+          </div>
+
+          <sc-if value="{{ finished }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:16px">
+              <x-import component-from-global-scope="ColmeiaDesignSystem_82e260.Feedback" variant="{{ fb.variant }}" size="md" title="{{ fb.title }}" description="{{ fb.desc }}" hint-size="100%,96px"></x-import>
+              <div onClick="{{ onReset }}" style="cursor:pointer;align-self:flex-start">
+                <x-import component-from-global-scope="ColmeiaDesignSystem_82e260.Button" button-text="Nova operação" variant="secondary" size="sm" no-padding="{{ false }}" supporting-visual="{{ false }}" hint-size="140px,40px"></x-import>
+              </div>
+            </div>
+          </sc-if>
+        </section>
+      </sc-if>
+    </div>
+
+    <!-- Resumo -->
+    <aside style="position:sticky;top:24px;background:var(--bg-neutral-default,#fff);border:1px solid var(--border-neutral-subtle,#E8E8E8);border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:16px">
+      <h3 style="margin:0;font-size:16px;font-weight:600">Resumo</h3>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <span style="font-size:12px;color:var(--content-neutral-secondary,#535353)">Remetente</span>
+        <span style="font-size:14px;font-weight:600">{{ client.name }}</span>
+        <span style="font-size:12px;color:var(--content-neutral-secondary,#535353)">{{ client.doc }}</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <span style="font-size:12px;color:var(--content-neutral-secondary,#535353)">Beneficiário</span>
+        <span style="font-size:14px;font-weight:600">{{ account.holder }}</span>
+        <span style="font-size:12px;color:var(--content-neutral-secondary,#535353)">{{ account.label }}</span>
+      </div>
+      <div style="height:1px;background:var(--border-neutral-subtle,#E8E8E8)"></div>
+      <div style="display:flex;justify-content:space-between;font-size:14px"><span style="color:var(--content-neutral-secondary,#535353)">Total a pagar</span><span style="font-weight:600">{{ summary.send }}</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:14px"><span style="color:var(--content-neutral-secondary,#535353)">Recebe</span><span style="font-weight:700;color:var(--content-brand-primary-default,#1C7417)">{{ summary.receive }}</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:14px"><span style="color:var(--content-neutral-secondary,#535353)">Finalidade</span><span>{{ purpose }}</span></div>
+      <p style="margin:0;font-size:12px;line-height:18px;color:var(--content-neutral-secondary,#535353)">Operação de câmbio intermediada pela OXUS. O IOF de 0,38% já está incluído no VET.</p>
+    </aside>
+  </main>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const CLIENTS=[{id:'c1',name:'Lucas Fernandes',email:'lucas.fernandes@email.com',doc:'CPF ***.482.917-**'},{id:'c2',name:'Mariana Costa',email:'mariana.costa@email.com',doc:'CPF ***.105.338-**'}];
+const ACCOUNTS=[{id:'a1',label:'ACH •••• 6789 · Carlos Oliveira (USD)',holder:'Carlos Oliveira'},{id:'a2',label:'SWIFT •••• 2201 · Ana Ribeiro (USD)',holder:'Ana Ribeiro'}];
+const PURPOSES=['Conta própria','Manutenção de família','Educação','Saúde','Viagem','Serviços','Mercadorias'];
+const SCEN=[{code:',13',desc:'entrega falha e reembolsa'},{code:',14',desc:'PIX expira'},{code:',15',desc:'fica parada até reembolso'},{code:',99',desc:'sem rota'}];
+const RATE=0.184062, FEE=8.75, TTL=300;
+const brl=v=>'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const usd=v=>'US$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const rnd=(n,set='ABCDEF0123456789')=>Array.from({length:n},()=>set[Math.floor(Math.random()*set.length)]).join('');
+const parse=s=>{const n=parseFloat(String(s).replace(/\./g,'').replace(',','.'));return isNaN(n)?0:n};
+const cents=s=>{const m=String(s).match(/,(\d{2})$/);return m?m[1]:'00'};
+const LABELS=['Criação','Pagamento PIX','Liquidação','Entrega'];
+
+class Component extends DCLogic {
+  state={screen:'home',clientId:'c1',accountId:'a1',amount:'100,00',quote:null,left:TTL,purpose:'Viagem',transfer:null,stage:0,outcome:null,copied:false,noRoute:false,loading:false};
+  componentWillUnmount(){this.clear()}
+  clear(){clearInterval(this.tick);this.timers&&this.timers.forEach(clearTimeout);this.timers=[]}
+  later(ms,fn){(this.timers=this.timers||[]).push(setTimeout(fn,ms))}
+  quote=()=>{
+    if(this.state.transfer)return;
+    const v=parse(this.state.amount);if(v<10)return;
+    if(cents(this.state.amount)==='99'){this.setState({noRoute:true,quote:null});return}
+    this.setState({loading:true,noRoute:false});
+    clearInterval(this.tick);
+    this.later(600,()=>{
+      const recv=Math.floor((v-FEE)*RATE*100)/100;
+      this.setState({loading:false,quote:{v,recv,vet:recv/v},left:TTL});
+      this.tick=setInterval(()=>this.setState(s=>s.left>0&&!s.transfer?{left:s.left-1}:null),1000);
+    });
+  };
+  confirm=()=>{
+    const s=this.state;if(!s.quote||s.transfer||s.left<=0)return;
+    const c=cents(s.amount);
+    const pix='00020126580014br.gov.bcb.pix0136'+rnd(8,'0123456789abcdef')+'-'+rnd(4,'0123456789abcdef')+'-'+rnd(4,'0123456789abcdef')+'-'+rnd(12,'0123456789abcdef')+'52040000530398654'+String(s.quote.v.toFixed(2)).padStart(6,'0')+'5802BR5915OXUS PAGAMENTOS6009SAO PAULO62290525'+rnd(25)+'6304'+rnd(4);
+    this.setState({transfer:{id:'trf_'+rnd(43,'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-'),pix,refs:['','E'+rnd(31),'','TRC'+rnd(29)]},stage:1,outcome:null});
+    if(c==='14'){this.later(3500,()=>this.setState({outcome:'expired'}));return}
+    this.later(2500,()=>this.setState({stage:2}));
+    this.later(4500,()=>this.setState({stage:3}));
+    if(c==='15'){this.later(7000,()=>this.setState({outcome:'stuck'}));this.later(11000,()=>this.setState({outcome:'refunded_stuck'}));return}
+    if(c==='13'){this.later(6500,()=>this.setState({outcome:'failed'}));return}
+    this.later(6500,()=>this.setState({stage:4,outcome:'done'}));
+  };
+  reset=()=>{this.clear();this.setState({quote:null,left:TTL,transfer:null,stage:0,outcome:null,copied:false,noRoute:false})};
+  renderVals(){
+    const s=this.state, q=s.quote, t=s.transfer, o=s.outcome;
+    const client=CLIENTS.find(c=>c.id===s.clientId), account=ACCOUNTS.find(a=>a.id===s.accountId);
+    const expired=q&&s.left<=0&&!t;
+    const mm=Math.floor(s.left/60)+':'+String(s.left%60).padStart(2,'0');
+    const statusOf=i=>{
+      if(o==='expired')return i===0?['Concluída','pos']:i===1?['Expirado','neg']:['—','mute'];
+      if(o==='failed'&&i===3)return['Falhou · reembolsado','neg'];
+      if((o==='stuck')&&i===3)return['Parada','warn'];
+      if(o==='refunded_stuck'&&i===3)return['Reembolsada','neg'];
+      if(i<s.stage)return['Concluída','pos'];
+      if(i===s.stage&&!o)return['Em andamento','warn'];
+      return['Aguardando','mute'];
+    };
+    const C={pos:'var(--content-positive-default,#1C7417)',neg:'var(--content-negative-default,#C31312)',warn:'var(--content-warning-default,#94400C)',mute:'var(--content-neutral-tertiary,#8A8A8A)'};
+    const steps=LABELS.map((label,i)=>{const [status,k]=statusOf(i);return{label,status,color:C[k],ref:k==='pos'&&t?t.refs[i]:'',dot:k==='pos'?C.pos:'transparent',ring:C[k]}});
+    const tag=!o?{variant:'attention',text:'Em andamento'}:o==='done'?{variant:'success',text:'Concluída'}:o==='stuck'?{variant:'attention',text:'Parada'}:{variant:'error',text:o==='expired'?'Expirada':'Reembolsada'};
+    const fb={done:{variant:'success',title:'Remessa entregue',desc:(q?usd(q.recv):'')+' creditados para '+account.holder+'.'},expired:{variant:'error',title:'PIX expirado',desc:'O pagamento não foi identificado dentro do prazo. Faça uma nova cotação.'},failed:{variant:'error',title:'Entrega falhou',desc:'O banco de destino recusou o crédito. O valor foi reembolsado na conta de origem.'},refunded_stuck:{variant:'warning',title:'Operação reembolsada',desc:'A entrega ficou parada e foi cancelada. O valor voltou para a conta de origem.'}}[o]||{};
+    return {
+      isHome:s.screen==='home',isFlow:s.screen==='flow',
+      goFlow:()=>{this.setState({screen:'flow'});window.scrollTo(0,0)},
+      goHome:()=>{this.reset();this.setState({screen:'home'});window.scrollTo(0,0)},
+      clients:CLIENTS,accounts:ACCOUNTS,purposes:PURPOSES,client,account,
+      clientId:s.clientId,accountId:s.accountId,amount:s.amount,purpose:s.purpose,
+      locked:!!t,noRoute:s.noRoute,
+      onClient:e=>this.setState({clientId:e.target.value}),
+      onAccount:e=>this.setState({accountId:e.target.value}),
+      onAmount:e=>this.setState({amount:e.target.value,noRoute:false}),
+      onPurpose:e=>this.setState({purpose:e.target.value}),
+      onQuote:this.quote,onConfirm:this.confirm,onReset:this.reset,
+      onCopy:()=>{try{navigator.clipboard.writeText(t.pix)}catch(e){}this.setState({copied:true})},
+      quoteLabel:s.loading?'Cotando…':q?'Recotar':'Cotar',
+      quoteDisabled:!!t||parse(s.amount)<10,quoteState:(!!t||parse(s.amount)<10)?'inactive':'active',
+      showScenarios:!t,
+      scenarios:SCEN.map(x=>({...x,pick:()=>{if(t)return;const base=String(Math.floor(parse(s.amount))||100);this.setState({amount:base+x.code,noRoute:false,quote:null})}})),
+      hasQuote:!!q,
+      q:q?{send:brl(q.v),receive:usd(q.recv),rate:RATE.toFixed(6),vet:q.vet.toFixed(6),fees:brl(FEE)}:{},
+      validity:t?'Usada':expired?'Expirada':mm,
+      validityColor:expired?'var(--content-negative-default,#C31312)':s.left<60&&!t?'var(--content-warning-default,#94400C)':'var(--content-neutral-default,#272727)',
+      step3Opacity:q?1:0.5,
+      purposeDisabled:!q||!!t,
+      confirmDisabled:!q||!!t||expired,confirmState:(!q||!!t||expired)?'inactive':'active',
+      hasTransfer:!!t,transferId:t?t.id:'',pix:t?t.pix:'',
+      showPix:!!t&&s.stage<=1&&o!=='expired',
+      copyLabel:s.copied?'Copiado':'Copiar código',
+      steps,tag,finished:!!o&&o!=='stuck',fb,
+      summary:{send:q?brl(q.v):'—',receive:q?usd(q.recv):'—'}
+    };
+  }
+}
+</script>
+</body>
+</html>

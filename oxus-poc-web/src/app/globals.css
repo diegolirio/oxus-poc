@@ -1,26 +1,42 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
+/* Tokens do Colmeia 3.0, tema core-light (docs/design/README.md). */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-brand-primary: #1d8915;
+  --color-brand-content: #1c7417;
+  --color-interactive: #0078ad;
+  --color-neutral-default: #272727;
+  --color-neutral-secondary: #535353;
+  --color-neutral-tertiary: #8a8a8a;
+  --color-surface: #ffffff;
+  --color-surface-subtle: #f8f8f8;
+  --color-border-default: #d3d3d3;
+  --color-border-subtle: #e8e8e8;
+  --color-attention: #94400c;
+  --color-negative: #c31312;
+  --color-disabled: #e2e2e2;
+  /* Fundos claros das tags e do Feedback (TagStatus do DS). */
+  --color-success-light: #cffccb;
+  --color-success-dark: #295921;
+  --color-warning-light: #f9debc;
+  --color-warning-dark: #442b09;
+  --color-error-light: #f9d7d7;
+  --color-error-dark: #600f0f;
+  --color-warning-icon: #9b7d1a;
+  --color-error-icon: #e71c1b;
+  --color-success-icon: #2d6925;
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-fira-code);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-surface-subtle);
+  color: var(--color-neutral-default);
+  font-family: var(--font-inter), system-ui, sans-serif;
+}
+
+select,
+input,
+textarea {
+  font-family: inherit;
 }
