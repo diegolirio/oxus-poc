@@ -113,3 +113,9 @@ Cenário: o cliente tem conta, mas nunca passou pelo onboarding de investimentos
 - Tratamento de IOF e da documentação cambial.
 - **Código estruturado para a falha da transferência.** Hoje o `failureReason` é texto livre, com o código do banco dentro da frase (no sandbox: "Conta do beneficiário recusada pelo banco de destino (R03 · conta inexistente)"). Sem um campo de código separado (ex.: `failureCode: "RECEIVER_ACCOUNT_NOT_FOUND"`, com o código original do rail à parte), o app não consegue mostrar mensagem própria nem decidir a ação (pedir para corrigir a conta, tentar de novo, acionar o suporte). A OXUS pode expor esse código, e qual é a lista de valores possíveis?
 - **Evento de webhook para PIX expirado.** Há `transfer.completed`, `transfer.failed` e `transfer.refunded`, mas não `transfer.expired`: a expiração do PIX só chega como `transfer.updated`, e o PagBank precisa olhar o status em toda atualização para avisar o cliente. Está previsto um evento próprio, e o mesmo vale para `transfer.cancelled`?
+- **O CPF de quem paga o PIX precisa bater com o CPF do cliente cadastrado?** O contrato diz só que "o pagamento deve sair de conta do próprio cliente final", e que o reembolso volta para a conta que pagou. Não diz:
+  - se a OXUS confere o CPF do pagador do PIX contra o `taxId` do cliente da transferência;
+  - o que acontece quando não bate (PIX de outra pessoa ou de uma conta bolsão/agregadora do PagBank): a transferência é recusada, o valor é devolvido automaticamente, ou ela fica parada?
+  - se existe algum modelo em que o PagBank paga com conta própria em nome do cliente (agregador), e o que seria preciso para habilitá-lo (ver 2.1).
+
+  O beneficiário no destino, por outro lado, já pode ser outra pessoa (`holder.relationship` = `FAMILY`, `SUPPLIER` etc.), então a regra de titularidade vale só para a origem.
