@@ -449,6 +449,12 @@ introduz:**
 
 Renomear ou remover uma variável mexe nas mesmas duas listas.
 
+Variáveis da integração com a OXUS (README, sem valor):
+
+- `OXUS_API_URL`: lida pelo `-api`; padrão na configuração (o sandbox).
+- `OXUS_API_KEY`: lida pelo `-api`; segredo, só no `.env.local`.
+- `OXUS_POC_API_URL`: lida pelo `-web`, para onde os Route Handlers repassam.
+
 O porquê: o `.env.local` não vai para o repositório, e o README é a única
 lista versionada do que a aplicação precisa para subir. Sem ela, uma variável
 nova sem padrão faz a aplicação parar de subir em toda máquina, e ninguém sabe
@@ -495,3 +501,48 @@ o uso em desenvolvimento; quem mexer na área decide se fecha junto.
 
 Um item entra no mesmo commit que cria a dívida, não depois. Um débito que só
 existe na cabeça de quem o criou é um defeito esperando para ser redescoberto.
+
+## Contexto: integração com a OXUS
+
+A POC fala com a API da OXUS (versão `2026-10-01`). Contrato:
+https://docs.oxus.finance/referencia (o OpenAPI está em
+`https://docs.oxus.finance/openapi.json`). Leia o contrato antes de
+implementar; o resumo abaixo não o substitui. As dúvidas de produto abertas
+estão em `requirements-doubts.md`.
+
+- **Ambientes.** Sandbox em `https://docs.oxus.finance/api/sandbox`, com a
+  chave de demonstração publicada na referência; produção em
+  `https://api.oxuspay.io`, com chave `oxk_production_…` obtida na
+  homologação com a OXUS e aceita só dos IPs de saída cadastrados. A página
+  de autenticação cita `developers.oxuspay.io/api/sandbox`, mas esse host não
+  resolve: vale o da referência.
+- **A chave mora só no `-api`.** A OXUS proíbe a chave no navegador e o
+  sandbox não responde CORS. O `-web` chama os próprios Route Handlers, que
+  repassam ao `-api` (`src/lib/repasse.ts`).
+- **Cliente:** `infrastructure/data/anticorruptionLayer/oxus/` (interface
+  `OxusClient`, corpos de pedido) e `.../oxus/impl/OxusClientImpl`, no
+  `-core`. Ele traduz o JSON da OXUS para os tipos de `domain/Remittance.kt`,
+  que são o que as rotas devolvem — o `-api` não importa `infrastructure/`.
+- **Erros da OXUS** (`domain/ProviderExceptions.kt`, traduzidos no
+  `GlobalExceptionHandler`): 400, 409 e 422 → `ProviderRejectedException` →
+  422 com `errors[{code, message}]` da OXUS; 404 →
+  `ProviderResourceNotFoundException` → 404 genérico; 401, 403, 429, 5xx e
+  falha de rede → `ProviderUnavailableException` → 502 genérico, com status,
+  `code` e `requestId` no log e nunca a chave.
+- **Nunca mande campo opcional como `null`.** A OXUS responde
+  `VALIDATION_ERROR` para `"campo": null` em vez de tratá-lo como ausente
+  (achado contra o sandbox, 2026-10-22, com `externalReference`). Os corpos
+  de pedido em `OxusRequests.kt` só têm o que é enviado, e o
+  `OxusClientImplTest` confere o corpo exato.
+- **Valores** são inteiros em centavos em todo o caminho (OXUS, `-api` e
+  `-web`); só a tela formata.
+- **`Idempotency-Key`** é obrigatório em `POST /transfers`. O `-web` gera um
+  por cotação, para que confirmar duas vezes não crie duas transferências.
+- **Sem banco nesta fase:** a OXUS é a fonte da verdade e o status é lido
+  dela a cada consulta. Guardar transferência entra quando houver conciliação
+  ou webhook.
+- **Testes:** os ITs trocam o cliente pelo `FakeOxusClient` (`@Primary`, no
+  `TestConfig`); o `OxusClientImplTest` cobre o JSON e a tradução de erros
+  com `MockRestServiceServer`. Nenhum teste chama a OXUS de verdade.
+- **Fora por enquanto:** cadastro de cliente e atestação de KYC (assinatura
+  Ed25519 e dossiê), webhooks, reembolso e cancelamento pela tela, `-mobile`.

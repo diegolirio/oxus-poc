@@ -28,7 +28,34 @@ SERVER_PORT=8081 PORT=3001 make run API_PORT=8081 WEB_PORT=3001
 
 ## Variáveis de ambiente
 
-Nenhuma por enquanto.
+```
+OXUS_API_URL=
+OXUS_API_KEY=
+OXUS_POC_API_URL=
+```
+
+| Variável | Quem lê | Para quê |
+|---|---|---|
+| `OXUS_API_URL` | `oxus-poc-api` | Base da API da OXUS. Sem ela, o sandbox |
+| `OXUS_API_KEY` | `oxus-poc-api` | Chave da OXUS (`Authorization: Bearer`). Segredo: nunca no `-web`, no `-mobile`, em log ou no git |
+| `OXUS_POC_API_URL` | `oxus-poc-web` (Route Handlers) | Para onde o Next repassa as chamadas. Sem ela, `http://localhost:8080` |
+
+O Makefile não lê `.env.local`: exporte as variáveis no shell antes do `make run`.
+
+## Testar a remessa no sandbox
+
+A OXUS não tem painel nem cadastro para o sandbox: ele usa a chave de demonstração
+publicada na [referência da API](https://docs.oxus.finance/referencia), seção "Autenticação".
+
+```bash
+export OXUS_API_KEY=<chave de demonstração da referência>
+make run
+```
+
+Abra http://localhost:3000/cambio. A conferência completa, com os cenários de falha do
+sandbox, está em [docs/checkpoints/cambio-sandbox.md](docs/checkpoints/cambio-sandbox.md).
+Chave de produção não sai de painel: vem da homologação com o time da OXUS e só é aceita
+dos IPs de saída cadastrados.
 
 ## Testes
 

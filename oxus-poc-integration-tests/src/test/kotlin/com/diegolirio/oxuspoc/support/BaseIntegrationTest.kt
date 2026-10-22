@@ -2,6 +2,7 @@ package com.diegolirio.oxuspoc.support
 
 import com.diegolirio.oxuspoc.OxusPocApiApplication
 import org.junit.jupiter.api.BeforeEach
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.web.server.LocalServerPort
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection
@@ -28,6 +29,14 @@ abstract class BaseIntegrationTest {
     private var port: Int = 0
 
     protected lateinit var http: RestTestClient
+
+    @Autowired
+    protected lateinit var oxus: FakeOxusClient
+
+    @BeforeEach
+    fun limparDubles() {
+        oxus.reset()
+    }
 
     @BeforeEach
     fun prepararCliente() {

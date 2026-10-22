@@ -40,6 +40,10 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-flyway")
     implementation("org.flywaydb:flyway-database-postgresql")
     implementation("org.springframework.boot:spring-boot-starter-mail")
+    // RestClient do cliente da OXUS (anticorruptionLayer/oxus) e o Jackson que
+    // le e escreve o JSON dela.
+    implementation("org.springframework:spring-web")
+    implementation("tools.jackson.module:jackson-module-kotlin")
     // Spring, Jackson e Hibernate leem classe Kotlin via reflexao; sem isso
     // alguns caminhos (serializacao, proxy de metodo) falham em runtime.
     implementation("org.jetbrains.kotlin:kotlin-reflect")
@@ -47,6 +51,9 @@ dependencies {
 
     testImplementation(platform("org.junit:junit-bom:5.11.4"))
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
+    // MockRestServiceServer, para testar o cliente da OXUS sem rede.
+    testImplementation("org.springframework:spring-test")
+    testImplementation("com.jayway.jsonpath:json-path")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
