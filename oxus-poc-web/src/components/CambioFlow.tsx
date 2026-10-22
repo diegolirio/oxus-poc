@@ -11,8 +11,6 @@ import {
   type Quote,
   type Receiver,
   SCENARIOS,
-  STAGE_LABELS,
-  STATUS_LABELS,
   type Transfer,
   errorMessage,
   formatCountdown,
@@ -21,6 +19,7 @@ import {
   withCents,
 } from "@/lib/cambio";
 import { Button, Feedback, FormField, Header, Select, StepCard } from "@/components/ui";
+import TransferStatus from "./TransferStatus";
 
 const POLL_MS = 3000;
 
@@ -326,7 +325,7 @@ export default function CambioFlow() {
             </div>
           </StepCard>
 
-          {transfer && <TransferStatus transfer={transfer} onRestart={restart} />}
+          {transfer && <TransferStatus transfer={transfer} holderName={receiver?.holder.name ?? ""} onRestart={restart} />}
         </div>
 
         <aside className="flex flex-col gap-4 rounded-xl border border-border-subtle bg-surface p-6 lg:sticky lg:top-6">
@@ -371,70 +370,3 @@ function SummaryRow({ label, strong = false, children }: { label: string; strong
     </div>
   );
 }
-
-function TransferStatus({ transfer, onRestart }: { transfer: Transfer; onRestart: () => void }) {
-  const [copied, setCopied] = useState(false);
-  const pix = transfer.paymentInstructions?.pixCopyPaste;
-  const final = FINAL_STATUSES.includes(transfer.status);
-
-  async function copy() {
-    if (!pix) return;
-    await navigator.clipboard.writeText(pix);
-    setCopied(true);
-  }
-
-  return (
-    <section className={card}>
-      <div className="flex items-center justify-between gap-3">
-        <h2 className={heading}>4. Transferência</h2>
-        <span data-testid="transfer-status" className="rounded-full bg-black/5 px-3 py-1 text-sm font-medium dark:bg-white/10">
-          {STATUS_LABELS[transfer.status] ?? transfer.status}
-          {final ? "" : " · atualizando"}
-        </span>
-      </div>
-      <p className={`${muted} font-mono text-xs`}>{transfer.id}</p>
-
-      {pix && (
-        <div className="mt-4 flex flex-col gap-2">
-          <span className="text-sm font-medium">PIX copia e cola</span>
-          <textarea readOnly rows={3} value={pix} className={`${input} font-mono text-xs`} />
-          <button type="button" className={secondaryButton} onClick={copy}>
-            {copied ? "Copiado" : "Copiar código"}
-          </button>
-        </div>
-      )}
-
-      <ol className="mt-4 flex flex-col gap-2">
-        {transfer.stages.map((s) => (
-          <li key={s.stage} className="flex items-center justify-between rounded-lg border border-black/10 px-3 py-2 text-sm dark:border-white/15">
-            <span>{STAGE_LABELS[s.stage] ?? s.stage}</span>
-            <span className="text-right">
-              {STATUS_LABELS[s.status] ?? s.status}
-              {s.reference && <span className={`${muted} block font-mono text-xs`}>{s.reference}</span>}
-            </span>
-          </li>
-        ))}
-      </ol>
-
-      {transfer.failureReason && <p className="mt-3 text-sm text-red-700 dark:text-red-300">Motivo: {transfer.failureReason}</p>}
-      {transfer.refund && (
-        <p className="mt-3 text-sm">
-          Reembolso {STATUS_LABELS[transfer.refund.status] ?? transfer.refund.status}: {formatMoney(transfer.refund.amount, transfer.refund.currency)} ({transfer.refund.reason})
-        </p>
-      )}
-
-      {final && (
-        <button type="button" className={`${secondaryButton} mt-4`} onClick={onRestart}>
-          Nova operação
-        </button>
-      )}
-    </section>
-  );
-}
-
-const card = "rounded-2xl border border-black/10 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-zinc-900";
-const heading = "mb-3 text-base font-semibold";
-const muted = "text-sm text-zinc-500 dark:text-zinc-400";
-const input = "rounded-lg border border-black/15 bg-white px-3 py-2 font-normal dark:border-white/20 dark:bg-zinc-950";
-const secondaryButton =
-  "self-start rounded-lg border border-black/15 px-4 py-2 text-sm font-medium hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/10";

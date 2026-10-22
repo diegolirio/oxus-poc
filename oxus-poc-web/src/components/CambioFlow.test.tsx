@@ -142,6 +142,46 @@ test("confirma com Idempotency-Key, mostra o PIX e acompanha ate concluir", asyn
 
   await waitFor(() => expect(screen.getByTestId("transfer-status")).toHaveTextContent("Concluída"));
   expect(screen.getByRole("button", { name: "Nova operação" })).toBeInTheDocument();
+  expect(screen.getByRole("status")).toHaveTextContent("Remessa entregue");
+  expect(screen.getByRole("status")).toHaveTextContent("Carlos Oliveira");
+  expect(screen.queryByDisplayValue("000201pix")).toBeNull();
+});
+
+test("PIX some quando o pagamento conclui com a transferencia em andamento", async () => {
+  vi.useFakeTimers({ shouldAdvanceTime: true });
+  routes["GET /api/transfers/trf_1"] = () => Response.json(transfer("PROCESSING", "COMPLETED"));
+  await chooseLucasAndQuote();
+  fireEvent.click(await screen.findByRole("button", { name: "Confirmar" }));
+  expect(await screen.findByDisplayValue("000201pix")).toBeInTheDocument();
+
+  await act(() => vi.advanceTimersByTimeAsync(3000));
+
+  await waitFor(() => expect(screen.queryByDisplayValue("000201pix")).toBeNull());
+  expect(screen.getByTestId("transfer-status")).toHaveTextContent("Em andamento");
+});
+
+test("entrega que falha e reembolsa mostra o Feedback de erro", async () => {
+  vi.useFakeTimers({ shouldAdvanceTime: true });
+  routes["GET /api/transfers/trf_1"] = () =>
+    Response.json({
+      ...transfer("REFUNDED", "COMPLETED"),
+      stages: [
+        { stage: "CREATION", status: "COMPLETED" },
+        { stage: "PAYMENT", status: "COMPLETED" },
+        { stage: "SETTLEMENT", status: "COMPLETED" },
+        { stage: "DELIVERY", status: "FAILED" },
+      ],
+      failureReason: "BENEFICIARY_BANK_REJECTED",
+      refund: { status: "COMPLETED", reason: "DELIVERY_FAILED", amount: 100000, currency: "BRL" },
+    });
+  await chooseLucasAndQuote();
+  fireEvent.click(await screen.findByRole("button", { name: "Confirmar" }));
+  await screen.findByDisplayValue("000201pix");
+
+  await act(() => vi.advanceTimersByTimeAsync(3000));
+
+  expect(await screen.findByRole("alert")).toHaveTextContent("Entrega falhou");
+  expect(screen.getByRole("button", { name: "Nova operação" })).toBeInTheDocument();
 });
 
 test("falha ao carregar clientes aparece na tela", async () => {
