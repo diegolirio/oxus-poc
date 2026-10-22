@@ -90,6 +90,10 @@ Subir é preparação; a conferência é na tela.
     **embaixo do campo** (a borda do campo fica vermelha), e nada de cotação
     aparece. Também depois de uma cotação boa: cote `1.000,00`, troque para
     `,99` e clique **Recotar** — a cotação antiga tem de sumir.
+- **Mudar o valor depois de cotar:** cote `1.000,00` e clique um chip (ou
+  edite o valor). A cotação some e **Confirmar** volta a ficar desabilitado —
+  não pode dar para confirmar a cotação de R$ 1.000,00 com `1.000,13` no
+  campo.
 - **Abaixo do mínimo:** `9,99` deixa **Cotar** desabilitado.
 - **Cotação vencida:** cote, espere a validade chegar a 0:00. O texto vira
   "Expirada" em vermelho e **Confirmar** fica desabilitado. Cote de novo e
@@ -108,7 +112,8 @@ Subir é preparação; a conferência é na tela.
 - **Api fora do ar:** pare só a api (deixe o web). Recarregue: o aviso é "O
   oxus-poc-api nao respondeu.", sem erro não tratado no console.
 - **Trocar o cliente ou a conta depois de cotar:** a cotação some (e o Resumo
-  volta a "—"); não pode sobrar cotação de um cliente na tela de outro.
+  volta a "—") e um erro de cotação embaixo do campo também; não pode sobrar
+  cotação nem erro de um cliente na tela de outro.
 - **Nova operação:** depois de um status final, "Nova operação" limpa valor,
   cotação e transferência; cliente e conta continuam escolhidos.
 

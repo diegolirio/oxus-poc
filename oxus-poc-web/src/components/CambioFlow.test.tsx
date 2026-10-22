@@ -243,3 +243,25 @@ test("resumo mostra remetente, beneficiario e total", async () => {
   expect(resumo.getByText("Carlos Oliveira")).toBeInTheDocument();
   expect(resumo.getByText(/R\$\s1\.000,00/)).toBeInTheDocument();
 });
+
+test("chip depois de cotar descarta a cotacao do valor antigo", async () => {
+  await chooseLucasAndQuote("1.000,00");
+  const cotacao = within(screen.getByRole("region", { name: "Cotação" }));
+  await cotacao.findByText(/183,61/);
+
+  fireEvent.click(screen.getByRole("button", { name: /,13/ }));
+
+  expect(cotacao.queryByText(/183,61/)).toBeNull();
+  expect(screen.getByRole("button", { name: "Confirmar" })).toBeDisabled();
+});
+
+test("trocar o cliente limpa o erro da cotacao no campo", async () => {
+  routes["POST /api/quotes"] = () =>
+    Response.json({ errors: [{ code: "ROUTE_UNAVAILABLE", message: "Nenhuma rota disponível." }] }, { status: 422 });
+  await chooseLucasAndQuote("1.000,99");
+  expect(await screen.findByRole("alert")).toHaveTextContent("(ROUTE_UNAVAILABLE)");
+
+  fireEvent.change(screen.getByRole("combobox", { name: "Cliente" }), { target: { value: "" } });
+
+  await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+});

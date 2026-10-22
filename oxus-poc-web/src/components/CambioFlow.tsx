@@ -88,6 +88,7 @@ export default function CambioFlow() {
     setReceiverId("");
     setReceivers(null);
     setQuote(null);
+    setQuoteError(null);
     setError(null);
     if (!id) return;
     const r = await fetch(`/api/customers/${encodeURIComponent(id)}/receivers`);
@@ -102,8 +103,10 @@ export default function CambioFlow() {
     if (validated.length === 1) setReceiverId(validated[0].id);
   }
 
+  // Outro valor pede outra cotacao: a de antes nao pode ser confirmada.
   function changeAmount(text: string) {
     setAmountText(text);
+    setQuote(null);
     setQuoteError(null);
   }
 
@@ -215,6 +218,7 @@ export default function CambioFlow() {
                   onChange={(e) => {
                     setReceiverId(e.target.value);
                     setQuote(null);
+                    setQuoteError(null);
                   }}
                 >
                   <option value="">{receivers?.length === 0 ? "Nenhuma conta validada" : "Escolha…"}</option>
