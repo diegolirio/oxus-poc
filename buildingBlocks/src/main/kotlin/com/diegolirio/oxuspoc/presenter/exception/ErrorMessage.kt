@@ -1,0 +1,5 @@
+package com.diegolirio.oxuspoc.presenter.exception
+
+data class ListErrorMessage(val error: String, val details: List<ErrorMessage>)
+
+data class ErrorMessage(val code: String, val message: String, val details: String? = null)

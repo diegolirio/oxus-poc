@@ -1,0 +1,7 @@
+package com.diegolirio.oxuspoc.application
+
+import java.util.UUID
+
+interface Query<out TResult> {
+    val id: UUID
+}
