@@ -1,0 +1,83 @@
+package com.diegolirio.oxuspoc.architecture
+
+import com.tngtech.archunit.base.DescribedPredicate
+import com.tngtech.archunit.core.domain.JavaClass
+import com.tngtech.archunit.core.domain.JavaClasses
+import com.tngtech.archunit.core.importer.ClassFileImporter
+import com.tngtech.archunit.lang.ArchCondition
+import com.tngtech.archunit.lang.ConditionEvents
+import com.tngtech.archunit.lang.SimpleConditionEvent
+import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes
+import com.diegolirio.oxuspoc.support.BaseIntegrationTest
+import org.junit.jupiter.api.Test
+import org.springframework.scheduling.annotation.Scheduled
+import org.springframework.web.bind.annotation.RestController
+
+/**
+ * Um unico trabalho: todo entrypoint -- @RestController, metodo @Scheduled,
+ * metodo @KafkaListener, @Tool ou @McpTool -- precisa de um <Nome>IT que estenda
+ * BaseIntegrationTest. Um job entra pelo mesmo motivo que um controller, e com
+ * mais razao: ninguem recebe um 500 quando um agendamento para de rodar.
+ *
+ * Sem FreezingArchRule: um store de freeze so viraria lugar de esconder
+ * entrypoint sem teste. Sem archunit-junit5 (@ArchTest): aquele engine traz uma
+ * JUnit Platform que conflita com a do Spring Boot 4; um @Test comum basta.
+ *
+ * @KafkaListener, @Tool e @McpTool sao comparados pelo nome para a regra
+ * compilar sem spring-kafka nem spring-ai. As duas de tool sao anotacoes
+ * diferentes: @Tool e tool-calling exposto por ToolCallbackProvider, @McpTool
+ * e o scanner de anotacoes do servidor MCP. allowEmptyShould(true) porque um
+ * projeto novo ainda nao tem entrypoint.
+ *
+ * Um @KafkaListener de classe (com metodos @KafkaHandler) nao e coberto: a
+ * regra so olha metodos anotados diretamente.
+ */
+class EntrypointHasIntegrationTestIT {
+
+    private val importadas: JavaClasses = ClassFileImporter().importPackages("com.diegolirio.oxuspoc")
+
+    private val saoEntrypoints: DescribedPredicate<JavaClass> =
+        DescribedPredicate.describe("sao entrypoints (@RestController, @Scheduled, @KafkaListener, @Tool ou @McpTool)") { classe ->
+            classe.isAnnotatedWith(RestController::class.java) ||
+                classe.methods.any {
+                    it.isAnnotatedWith(Scheduled::class.java) ||
+                        it.isAnnotatedWith(KAFKA_LISTENER) ||
+                        it.isAnnotatedWith(TOOL) ||
+                        it.isAnnotatedWith(MCP_TOOL)
+                }
+        }
+
+    private fun temIntegrationTest(todas: JavaClasses) =
+        object : ArchCondition<JavaClass>("ter um <Nome>IT que estenda BaseIntegrationTest") {
+            override fun check(entrypoint: JavaClass, eventos: ConditionEvents) {
+                val esperado = "${entrypoint.simpleName}IT"
+                val achou = todas.any { it.simpleName == esperado && it.isAssignableTo(BaseIntegrationTest::class.java) }
+                if (achou) {
+                    eventos.add(SimpleConditionEvent.satisfied(entrypoint, "$esperado existe"))
+                } else {
+                    eventos.add(
+                        SimpleConditionEvent.violated(
+                            entrypoint,
+                            "${entrypoint.name} nao tem '$esperado' estendendo BaseIntegrationTest",
+                        ),
+                    )
+                }
+            }
+        }
+
+    @Test
+    fun `todo entrypoint tem teste de integracao`() {
+        classes()
+            .that(saoEntrypoints)
+            .should(temIntegrationTest(importadas))
+            .allowEmptyShould(true)
+            .because("todo entrypoint precisa de ao menos um teste de integracao")
+            .check(importadas)
+    }
+
+    private companion object {
+        const val KAFKA_LISTENER = "org.springframework.kafka.annotation.KafkaListener"
+        const val TOOL = "org.springframework.ai.tool.annotation.Tool"
+        const val MCP_TOOL = "org.springframework.ai.mcp.annotation.McpTool"
+    }
+}

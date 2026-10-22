@@ -4,6 +4,7 @@ plugins {
     kotlin("plugin.spring")
     kotlin("plugin.jpa")
     id("io.spring.dependency-management")
+    id("info.solidsoft.pitest")
 }
 
 group = "com.diegolirio"
@@ -68,4 +69,24 @@ allOpen {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+}
+
+// Sem org.pitest:pitest-kotlin-plugin: ele nunca saiu de 0.1-SNAPSHOT e nao
+// resolve na maioria dos repositorios. O Pitest roda sem ele, com mutantes um
+// pouco piores em data class, elvis e safe-call. O aviso "Project uses kotlin,
+// but the Arcmutate kotlin plugin is not present" no log e esperado.
+pitest {
+    junit5PluginVersion = "1.2.3"
+    targetClasses = setOf("com.diegolirio.oxuspoc.application.*", "com.diegolirio.oxuspoc.domain.*")
+    // Mesma exclusao do JaCoCo: ponto de entrada e configuracao.
+    excludedClasses = setOf("*Application*", "com.diegolirio.oxuspoc.configuration.*")
+    // So os unitarios: os *IT nao terminam em Test e ficam de fora.
+    targetTests = setOf("*Test")
+    outputFormats = setOf("HTML", "XML")
+    timestampedReports = false
+    // Projeto recem-criado ainda nao tem classe de logica: zero mutantes nao e erro.
+    failWhenNoMutations = false
+    // Sem mutationThreshold de proposito: o mutation score e diagnostico, nao
+    // gate. Um limiar e ajuste manual do time, depois de revisar os mutantes
+    // equivalentes.
 }

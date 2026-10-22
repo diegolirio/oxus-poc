@@ -53,7 +53,7 @@ down-volumes: ## Derruba o Postgres e APAGA o volume de dados
 build: build-backend build-web build-mobile ## Builda os quatro módulos
 
 .PHONY: build-backend
-build-backend: up ## Builda api e core (gera o jar e roda os testes; precisa do Postgres de pé)
+build-backend: ## Builda os modulos do backend (gera o jar e roda os unitarios; nao sobe banco)
 	$(GRADLEW) build
 
 .PHONY: build-web
@@ -68,15 +68,30 @@ build-mobile: $(MOBILE_DIR)/node_modules ## Checa tipos do mobile (Expo não tem
 ##@ Testes
 
 .PHONY: test
-test: test-backend test-web ## Roda testes do backend e lint do web
+test: test-backend test-integration test-web test-mobile ## Roda todos os testes
 
 .PHONY: test-backend
-test-backend: up ## Roda os testes de api e core (precisa do Postgres de pé)
+test-backend: ## Testes unitarios do backend (nao sobe banco)
 	$(GRADLEW) test
 
+.PHONY: test-integration
+test-integration: ## Testes de integracao (*IT) sobre Testcontainers
+	$(GRADLEW) integrationTest
+
+.PHONY: test-mutation
+test-mutation: ## Teste de mutacao (Pitest) sobre os unitarios; diagnostico, fora do test
+	$(GRADLEW) :$(CORE_DIR):pitest
+
 .PHONY: test-web
-test-web: $(WEB_DIR)/node_modules ## Roda o lint do web (scaffold não tem testes)
+test-web: $(WEB_DIR)/node_modules ## Lint, tipos e testes do web
 	cd $(WEB_DIR) && npm run lint
+	cd $(WEB_DIR) && npm run typecheck
+	cd $(WEB_DIR) && npm test
+
+.PHONY: test-mobile
+test-mobile: $(MOBILE_DIR)/node_modules ## Tipos e testes do mobile
+	cd $(MOBILE_DIR) && npm run typecheck
+	cd $(MOBILE_DIR) && npm test
 
 .PHONY: doctor-mobile
 doctor-mobile: $(MOBILE_DIR)/node_modules ## Confere as dependências do Expo
