@@ -14,6 +14,8 @@ type Props = {
 export function FormField({ label, prefix, helper, error, className = "", id, ...rest }: Props) {
   const generated = useId();
   const inputId = id ?? generated;
+  const messageId = `${inputId}-msg`;
+  const message = error || helper;
   return (
     <div className={`flex w-full flex-col gap-1 ${className}`}>
       <div
@@ -26,6 +28,8 @@ export function FormField({ label, prefix, helper, error, className = "", id, ..
           <input
             id={inputId}
             className="peer absolute bottom-1.5 left-0 w-full border-0 bg-transparent p-0 text-base text-neutral-default outline-none placeholder:text-transparent focus:placeholder:text-neutral-tertiary"
+            aria-invalid={error ? true : undefined}
+            aria-describedby={message ? messageId : undefined}
             {...rest}
             // Sem placeholder o :placeholder-shown nao dispara e o label nao desce.
             placeholder={rest.placeholder ?? " "}
@@ -41,11 +45,11 @@ export function FormField({ label, prefix, helper, error, className = "", id, ..
         </div>
       </div>
       {error ? (
-        <p role="alert" className="text-xs text-negative">
+        <p id={messageId} role="alert" className="text-xs text-negative">
           {error}
         </p>
       ) : (
-        helper && <p className="text-xs text-neutral-secondary">{helper}</p>
+        helper && <p id={messageId} className="text-xs text-neutral-secondary">{helper}</p>
       )}
     </div>
   );

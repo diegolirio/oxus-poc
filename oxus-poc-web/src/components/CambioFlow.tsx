@@ -1,19 +1,26 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
   type Customer,
   FINAL_STATUSES,
+  MIN_AMOUNT_CENTS,
   PURPOSES,
+  PURPOSE_DEFAULT,
   type Quote,
   type Receiver,
+  SCENARIOS,
   STAGE_LABELS,
   STATUS_LABELS,
   type Transfer,
   errorMessage,
+  formatCountdown,
   formatMoney,
   parseReais,
+  withCents,
 } from "@/lib/cambio";
+import { Button, Feedback, FormField, Header, Select, StepCard } from "@/components/ui";
 
 const POLL_MS = 3000;
 
@@ -24,7 +31,7 @@ function isEligible(customer: Customer) {
 /**
  * Tela de teste da remessa BRL -> exterior no sandbox da OXUS: cliente e
  * conta, cotacao, confirmacao com o PIX copia e cola e acompanhamento das
- * etapas ate um status final.
+ * etapas ate um status final, com o resumo da operacao ao lado.
  */
 export default function CambioFlow() {
   const [customers, setCustomers] = useState<Customer[] | null>(null);
@@ -35,10 +42,13 @@ export default function CambioFlow() {
   const [quote, setQuote] = useState<Quote | null>(null);
   // Uma por cotacao: confirmar duas vezes a mesma cotacao nao cria duas transferencias.
   const [idempotencyKey, setIdempotencyKey] = useState("");
-  const [purpose, setPurpose] = useState("OWN_ACCOUNT");
+  const [purpose, setPurpose] = useState(PURPOSE_DEFAULT);
   const [transfer, setTransfer] = useState<Transfer | null>(null);
+  // Erro da cotacao (valor ou recusa da OXUS) fica no campo; os demais, no topo.
+  const [quoteError, setQuoteError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [quoting, setQuoting] = useState(false);
   // Relogio da contagem regressiva. Comeca em 0 e so passa a valer quando
   // chega uma cotacao: Date.now() aqui rodaria no prerender do servidor.
   const [now, setNow] = useState(0);
@@ -93,16 +103,23 @@ export default function CambioFlow() {
     if (validated.length === 1) setReceiverId(validated[0].id);
   }
 
+  function changeAmount(text: string) {
+    setAmountText(text);
+    setQuoteError(null);
+  }
+
   async function requestQuote(event: React.FormEvent) {
     event.preventDefault();
     const amountInCents = parseReais(amountText);
+    setQuote(null);
     if (amountInCents === null) {
-      setError("Informe um valor em reais maior que zero, por exemplo 1.000,00.");
+      setQuoteError("Informe um valor em reais maior que zero, por exemplo 1.000,00.");
       return;
     }
     setBusy(true);
+    setQuoting(true);
+    setQuoteError(null);
     setError(null);
-    setQuote(null);
     try {
       const r = await fetch("/api/quotes", {
         method: "POST",
@@ -110,7 +127,7 @@ export default function CambioFlow() {
         body: JSON.stringify({ customerId, receiverId, amountInCents }),
       });
       if (!r.ok) {
-        setError(await errorMessage(r));
+        setQuoteError(await errorMessage(r));
         return;
       }
       setQuote(await r.json());
@@ -118,6 +135,7 @@ export default function CambioFlow() {
       setNow(Date.now());
     } finally {
       setBusy(false);
+      setQuoting(false);
     }
   }
 
@@ -145,136 +163,211 @@ export default function CambioFlow() {
     setQuote(null);
     setTransfer(null);
     setAmountText("");
+    setQuoteError(null);
     setError(null);
   }
 
+  const customer = customers?.find((c) => c.id === customerId);
+  const receiver = receivers?.find((r) => r.id === receiverId);
   const secondsLeft = quote ? Math.max(0, Math.floor((Date.parse(quote.expiresAt) - now) / 1000)) : 0;
   const quoteExpired = quote !== null && secondsLeft === 0;
+  const amountInCents = parseReais(amountText);
+  const belowMinimum = amountInCents !== null && amountInCents < MIN_AMOUNT_CENTS;
+  const locked = transfer !== null;
 
   return (
-    <div className="flex flex-col gap-6">
-      {error && (
-        <p role="alert" className="rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200">
-          {error}
-        </p>
-      )}
+    <div className="flex min-h-screen flex-col">
+      <Header userName={customer?.name} userEmail={customer?.email} />
+      <div className="mx-auto w-full max-w-[1080px] px-6 pt-6">
+        <Link href="/" className="inline-block py-2 text-sm font-semibold text-interactive">
+          ← Voltar
+        </Link>
+      </div>
+      <main className="mx-auto grid w-full max-w-[1080px] grid-cols-1 items-start gap-6 px-6 pt-2 pb-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,340px)]">
+        <div className="flex flex-col gap-2 lg:col-span-2">
+          <span className="text-xs font-semibold tracking-[.06em] text-brand-content uppercase">Câmbio · Sandbox OXUS</span>
+          <h1 className="text-4xl leading-[44px] font-bold">Remessa BRL → exterior</h1>
+          <p className="text-base leading-6 text-neutral-secondary">
+            Cliente e conta prontos do sandbox, cotação, PIX e acompanhamento. Nenhum dinheiro de verdade.
+          </p>
+        </div>
 
-      <section className={card}>
-        <h2 className={heading}>1. Cliente e conta de destino</h2>
-        {customers === null ? (
-          <p className={muted}>Carregando clientes…</p>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className={field}>
-              <span>Cliente</span>
-              <select
-                className={input}
-                value={customerId}
-                disabled={transfer !== null}
-                onChange={(e) => chooseCustomer(e.target.value)}
+        <div className="flex flex-col gap-4">
+          {error && <Feedback variant="error" title="Algo deu errado" description={error} />}
+
+          <StepCard step={1} title="Cliente e conta de destino">
+            {customers === null ? (
+              <p className="text-sm text-neutral-secondary">Carregando clientes…</p>
+            ) : (
+              <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4">
+                <Select label="Cliente" value={customerId} disabled={locked} onChange={(e) => chooseCustomer(e.target.value)}>
+                  <option value="">Escolha…</option>
+                  {customers.map((c) => (
+                    <option key={c.id} value={c.id} disabled={!isEligible(c)}>
+                      {c.name}
+                      {isEligible(c) ? "" : " (KYC pendente)"}
+                    </option>
+                  ))}
+                </Select>
+                <Select
+                  label="Conta de destino"
+                  value={receiverId}
+                  disabled={!receivers || receivers.length === 0 || locked}
+                  onChange={(e) => {
+                    setReceiverId(e.target.value);
+                    setQuote(null);
+                  }}
+                >
+                  <option value="">{receivers?.length === 0 ? "Nenhuma conta validada" : "Escolha…"}</option>
+                  {receivers?.map((rcv) => (
+                    <option key={rcv.id} value={rcv.id}>
+                      {rcv.displayLabel} · {rcv.holder.name} ({rcv.currency})
+                    </option>
+                  ))}
+                </Select>
+              </div>
+            )}
+          </StepCard>
+
+          <StepCard step={2} title="Cotação">
+            <form onSubmit={requestQuote} className="flex flex-col gap-3 sm:flex-row sm:items-start">
+              <FormField
+                label="Valor em reais"
+                prefix="R$"
+                helper="Mínimo R$ 10,00"
+                error={quoteError}
+                inputMode="decimal"
+                placeholder="1.000,00"
+                value={amountText}
+                disabled={locked}
+                onChange={(e) => changeAmount(e.target.value)}
+                className="flex-1"
+              />
+              <Button type="submit" className="sm:mt-1" disabled={!receiverId || busy || locked || belowMinimum}>
+                {quoting ? "Cotando…" : quote ? "Recotar" : "Cotar"}
+              </Button>
+            </form>
+            <div className="flex flex-wrap gap-2">
+              {SCENARIOS.map((s) => (
+                <button
+                  key={s.cents}
+                  type="button"
+                  title={s.desc}
+                  disabled={locked}
+                  onClick={() => changeAmount(withCents(amountText, s.cents))}
+                  className="cursor-pointer rounded-full border border-border-default bg-surface px-2.5 py-1 font-mono text-xs whitespace-nowrap text-neutral-default hover:border-brand-primary disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  ,{s.cents} {s.desc}
+                </button>
+              ))}
+            </div>
+
+            {quote && (
+              <div className="flex flex-col gap-4 border-t border-border-subtle pt-4">
+                <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 rounded-lg bg-surface-subtle p-4">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs text-neutral-secondary">Você envia</span>
+                    <span className="text-xl font-semibold">{formatMoney(quote.sourceAmount, quote.sourceCurrency)}</span>
+                  </div>
+                  <span aria-hidden className="text-neutral-tertiary">→</span>
+                  <div className="flex flex-col gap-1 text-right">
+                    <span className="text-xs text-neutral-secondary">Destino recebe</span>
+                    <span className="text-2xl font-bold text-brand-content">
+                      {formatMoney(quote.destinationAmount, quote.destinationCurrency)}
+                    </span>
+                  </div>
+                </div>
+                <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2.5 text-sm">
+                  <dt className="text-neutral-secondary">Câmbio</dt>
+                  <dd className="text-right font-mono">{quote.exchangeRate}</dd>
+                  <dt className="text-neutral-secondary">VET</dt>
+                  <dd className="text-right font-mono">{quote.effectiveRate}</dd>
+                  <dt className="text-neutral-secondary">Tarifas</dt>
+                  <dd className="text-right">
+                    {formatMoney(quote.fees.total, quote.fees.currency)} (OXUS {formatMoney(quote.fees.oxusFee, quote.fees.currency)} + entrega{" "}
+                    {formatMoney(quote.fees.payoutFee, quote.fees.currency)})
+                  </dd>
+                  <dt className="text-neutral-secondary">Prazo estimado</dt>
+                  <dd className="text-right">
+                    {quote.routing.estimatedDelivery} · {quote.routing.evaluatedRoutes} rotas avaliadas
+                  </dd>
+                  <dt className="text-neutral-secondary">Validade</dt>
+                  <dd
+                    data-testid="quote-countdown"
+                    className={`text-right font-mono ${
+                      transfer ? "" : quoteExpired ? "text-negative" : secondsLeft < 60 ? "text-attention" : ""
+                    }`}
+                  >
+                    {transfer ? "Usada" : quoteExpired ? "Expirada" : formatCountdown(secondsLeft)}
+                  </dd>
+                </dl>
+              </div>
+            )}
+          </StepCard>
+
+          <StepCard step={3} title="Confirmação" muted={!quote}>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+              <Select
+                label="Finalidade"
+                className="flex-1"
+                value={purpose}
+                disabled={!quote || locked}
+                onChange={(e) => setPurpose(e.target.value)}
               >
-                <option value="">Escolha…</option>
-                {customers.map((c) => (
-                  <option key={c.id} value={c.id} disabled={!isEligible(c)}>
-                    {c.name}
-                    {isEligible(c) ? "" : " (KYC pendente)"}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className={field}>
-              <span>Conta de destino</span>
-              <select
-                className={input}
-                value={receiverId}
-                disabled={!receivers || receivers.length === 0 || transfer !== null}
-                onChange={(e) => {
-                  setReceiverId(e.target.value);
-                  setQuote(null);
-                }}
-              >
-                <option value="">{receivers?.length === 0 ? "Nenhuma conta validada" : "Escolha…"}</option>
-                {receivers?.map((rcv) => (
-                  <option key={rcv.id} value={rcv.id}>
-                    {rcv.displayLabel} · {rcv.holder.name} ({rcv.currency})
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-        )}
-      </section>
-
-      <section className={card}>
-        <h2 className={heading}>2. Cotação</h2>
-        <form onSubmit={requestQuote} className="flex flex-col gap-3 sm:flex-row sm:items-end">
-          <label className={`${field} flex-1`}>
-            <span>Valor em reais</span>
-            <input
-              className={input}
-              inputMode="decimal"
-              placeholder="1.000,00"
-              value={amountText}
-              disabled={transfer !== null}
-              onChange={(e) => setAmountText(e.target.value)}
-            />
-          </label>
-          <button type="submit" className={primaryButton} disabled={!receiverId || busy || transfer !== null}>
-            Cotar
-          </button>
-        </form>
-        <p className={`${muted} mt-3`}>
-          Sandbox: o final do valor em centavos simula cenários. <code>,13</code> a entrega falha e é reembolsada,{" "}
-          <code>,14</code> o PIX expira, <code>,15</code> fica parada até reembolso, <code>,99</code> sem rota.
-        </p>
-
-        {quote && (
-          <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
-            <dt className={muted}>Você envia</dt>
-            <dd className="text-right font-medium">{formatMoney(quote.sourceAmount, quote.sourceCurrency)}</dd>
-            <dt className={muted}>Destino recebe</dt>
-            <dd className="text-right text-lg font-semibold">{formatMoney(quote.destinationAmount, quote.destinationCurrency)}</dd>
-            <dt className={muted}>Câmbio</dt>
-            <dd className="text-right font-mono">{quote.exchangeRate}</dd>
-            <dt className={muted}>VET</dt>
-            <dd className="text-right font-mono">{quote.effectiveRate}</dd>
-            <dt className={muted}>Tarifas</dt>
-            <dd className="text-right">
-              {formatMoney(quote.fees.total, quote.fees.currency)}
-              <span className={muted}> (OXUS {formatMoney(quote.fees.oxusFee, quote.fees.currency)} + entrega {formatMoney(quote.fees.payoutFee, quote.fees.currency)})</span>
-            </dd>
-            <dt className={muted}>Prazo estimado</dt>
-            <dd className="text-right">{quote.routing.estimatedDelivery} · {quote.routing.evaluatedRoutes} rotas avaliadas</dd>
-            <dt className={muted}>Validade</dt>
-            <dd className="text-right" data-testid="quote-countdown">
-              {transfer ? "usada" : quoteExpired ? "expirou, cote de novo" : `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, "0")}`}
-            </dd>
-          </dl>
-        )}
-      </section>
-
-      {quote && (
-        <section className={card}>
-          <h2 className={heading}>3. Confirmação</h2>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-            <label className={`${field} flex-1`}>
-              <span>Finalidade</span>
-              <select className={input} value={purpose} disabled={transfer !== null} onChange={(e) => setPurpose(e.target.value)}>
                 {PURPOSES.map((p) => (
                   <option key={p.value} value={p.value}>
                     {p.label}
                   </option>
                 ))}
-              </select>
-            </label>
-            <button type="button" className={primaryButton} onClick={confirm} disabled={busy || quoteExpired || transfer !== null}>
-              Confirmar
-            </button>
-          </div>
-        </section>
-      )}
+              </Select>
+              <Button onClick={confirm} disabled={!quote || busy || quoteExpired || locked}>
+                Confirmar
+              </Button>
+            </div>
+          </StepCard>
 
-      {transfer && <TransferStatus transfer={transfer} onRestart={restart} />}
+          {transfer && <TransferStatus transfer={transfer} onRestart={restart} />}
+        </div>
+
+        <aside className="flex flex-col gap-4 rounded-xl border border-border-subtle bg-surface p-6 lg:sticky lg:top-6">
+          <h2 className="text-base font-semibold">Resumo</h2>
+          <SummaryItem label="Remetente">
+            <span className="block text-sm font-semibold">{customer?.name ?? "—"}</span>
+            {customer && <span className="block text-xs text-neutral-secondary">{customer.email}</span>}
+          </SummaryItem>
+          <SummaryItem label="Beneficiário">
+            <span className="block text-sm font-semibold">{receiver?.holder.name ?? "—"}</span>
+            {receiver && <span className="block text-xs text-neutral-secondary">{receiver.displayLabel}</span>}
+          </SummaryItem>
+          <hr className="border-border-subtle" />
+          <SummaryRow label="Total a pagar">{quote ? formatMoney(quote.sourceAmount, quote.sourceCurrency) : "—"}</SummaryRow>
+          <SummaryRow label="Recebe" strong>
+            {quote ? formatMoney(quote.destinationAmount, quote.destinationCurrency) : "—"}
+          </SummaryRow>
+          <SummaryRow label="Finalidade">{PURPOSES.find((p) => p.value === purpose)?.label ?? purpose}</SummaryRow>
+          <p className="text-xs leading-[18px] text-neutral-secondary">
+            Operação de câmbio intermediada pela OXUS. O IOF de 0,38% já está incluído no VET.
+          </p>
+        </aside>
+      </main>
+    </div>
+  );
+}
+
+function SummaryItem({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="text-xs text-neutral-secondary">{label}</span>
+      <div>{children}</div>
+    </div>
+  );
+}
+
+function SummaryRow({ label, strong = false, children }: { label: string; strong?: boolean; children: React.ReactNode }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3 text-sm">
+      <span className="text-neutral-secondary">{label}</span>
+      <span className={strong ? "font-bold text-brand-content" : "font-semibold"}>{children}</span>
     </div>
   );
 }
@@ -342,9 +435,6 @@ function TransferStatus({ transfer, onRestart }: { transfer: Transfer; onRestart
 const card = "rounded-2xl border border-black/10 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-zinc-900";
 const heading = "mb-3 text-base font-semibold";
 const muted = "text-sm text-zinc-500 dark:text-zinc-400";
-const field = "flex flex-col gap-1 text-sm font-medium";
 const input = "rounded-lg border border-black/15 bg-white px-3 py-2 font-normal dark:border-white/20 dark:bg-zinc-950";
-const primaryButton =
-  "rounded-lg bg-teal-700 px-5 py-2 text-sm font-semibold text-white hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-40";
 const secondaryButton =
   "self-start rounded-lg border border-black/15 px-4 py-2 text-sm font-medium hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/10";
